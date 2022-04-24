@@ -3,21 +3,28 @@ package main
 import (
 	"log"
 	"net/http"
+	"path/filepath"
+	"sync"
+	"text/template"
 )
 
+// Templ represents a single template
+type templateHandler struct {
+	once	sync.Once
+	filename	string
+	templ	*template.Template
+}
+
+// ServeHTTP handles the HTTP request
+func (t *templateHandler) ServeHTTP (w http.ResponseWriter, r *http.Request) {
+	t.once.Do(func() {
+		t.templ = template.Must(template.ParseFiles(filepath.Join("templates", t.filename)))
+	})
+	t.templ.Execute(w, nil)
+}
+
 func main (){
-	http.HandleFunc("/", func(wr http.ResponseWriter, r *http.Request) {
-		wr.Write([]byte (
-			`<html>
-				<head>
-					<title>Chat</title>
-				</head>
-				
-					<h1>Let's chat</h1>
-				
-			</html>`,
-		))
-	})	
+	http.Handle("/", &templateHandler{filename: "chat.html"})	
 
 	// Start the web server
 
